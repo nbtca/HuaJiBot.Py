@@ -1,0 +1,14 @@
+HuaJiBot.Py
+Copyright 2026 HuaJiBot.Py contributors
+
+This project ports business-plugin behavior and implementations from:
+HuaJiBot.NET — https://github.com/nbtca/HuaJiBot.NET
+Original work copyright its respective contributors.
+
+The Python implementation, AstrBot integration, persistent delivery queue,
+configuration conversion and tests were developed for HuaJiBot.Py.
+The original project and this port are distributed under the GNU Affero
+General Public License, version 3. See LICENSE for the full terms.
+
+AstrBot and other dependencies are separate projects with their own licenses.
+This repository does not redistribute the AstrBot runtime or dependency binaries.

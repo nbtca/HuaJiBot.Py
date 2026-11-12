@@ -1,0 +1,15 @@
+{
+  "allowed_sessions": [],
+  "admin_ids": [],
+  "cooldown_seconds": 10,
+  "calendar_enabled": true,
+  "calendar_url": "https://ical.nbtca.space/events.ics",
+  "tickets_enabled": false,
+  "tickets_url": "https://api.nbtca.space",
+  "minecraft_enabled": false,
+  "minecraft_address": "",
+  "ai_enabled": true,
+  "ai_system_prompt": "你是 NBTCA 社团助手。请用简洁中文回答，不要声称执行了未实际执行的操作。",
+  "extensions_json": "{}",
+  "ignored_bot_ids": []
+}

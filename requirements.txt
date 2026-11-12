@@ -1,0 +1,5 @@
+aiohttp>=3.11,<4
+icalendar>=7.3,<8
+python-dateutil>=2.9
+mcstatus>=12,<13
+tzdata>=2025.2

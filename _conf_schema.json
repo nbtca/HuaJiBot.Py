@@ -1,0 +1,73 @@
+{
+  "allowed_sessions": {
+    "type": "list",
+    "description": "允许的完整会话 UMO",
+    "hint": "群内 /sid 获取；空列表不允许任何会话。不是数字 QQ 群号。",
+    "default": []
+  },
+  "admin_ids": {
+    "type": "list",
+    "description": "管理员 UID",
+    "hint": "群内 /sid 获取；仅用于本插件管理员命令。",
+    "default": []
+  },
+  "cooldown_seconds": {
+    "type": "int",
+    "description": "同一用户命令冷却秒数",
+    "default": 10
+  },
+  "calendar_enabled": {
+    "type": "bool",
+    "description": "启用日程查询",
+    "default": true
+  },
+  "calendar_url": {
+    "type": "string",
+    "description": "日历 ICS 地址",
+    "default": "https://ical.nbtca.space/events.ics"
+  },
+  "tickets_enabled": {
+    "type": "bool",
+    "description": "启用工单查询",
+    "default": false
+  },
+  "tickets_url": {
+    "type": "string",
+    "description": "Saturday 工单 API 根地址",
+    "default": "https://api.nbtca.space"
+  },
+  "minecraft_enabled": {
+    "type": "bool",
+    "description": "启用 Minecraft Java 状态查询",
+    "default": false
+  },
+  "minecraft_address": {
+    "type": "string",
+    "description": "MC 地址 host:port（不是原消息桥地址）",
+    "default": ""
+  },
+  "ai_enabled": {
+    "type": "bool",
+    "description": "启用显式 ai／问 命令",
+    "default": true
+  },
+  "ai_system_prompt": {
+    "type": "text",
+    "description": "AI 命令提示词",
+    "default": "你是 NBTCA 社团助手。请用简洁中文回答，不要声称执行了未实际执行的操作。"
+  },
+  "extensions_json": {
+    "type": "text",
+    "description": "高级业务配置 JSON（保存后重载插件）",
+    "hint": "日历提醒、维修/NSQ、GitHub、游戏桥、日报、推送接口。参考 config/extensions.example.json；所有目标使用完整 UMO。凭证只存本机，不提交仓库。",
+    "default": "{}",
+    "editor_mode": true,
+    "editor_language": "json"
+  },
+  "ignored_bot_ids": {
+    "type": "list",
+    "description": "忽略的其他机器人 UID",
+    "hint": "游戏桥转发和日报记录忽略这些账号，避免与旧 .NET 机器人互相转发。",
+    "default": []
+  }
+}
