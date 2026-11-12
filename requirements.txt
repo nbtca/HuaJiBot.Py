@@ -3,3 +3,5 @@ icalendar>=7.3,<8
 python-dateutil>=2.9
 mcstatus>=12,<13
 tzdata>=2025.2
+Pillow>=11,<14
+emoji>=2.14,<3

@@ -1,6 +1,6 @@
 # 迁移清单与边界
 
-源：[nbtca/HuaJiBot.NET](https://github.com/nbtca/HuaJiBot.NET) 的业务插件；目标：AstrBot 官方 QQ 适配器。依据各插件具体命令、DTO 和传输实现迁移，不依赖读取线上服务配置。
+本项目对照原插件的命令、DTO 和传输协议，迁移到 AstrBot 官方 QQ 适配器。生产参数通过本地配置导入。[源项目](https://github.com/nbtca/HuaJiBot.NET)
 
 | 原模块／源码 | Python 实现 | 验证与差异 |
 |---|---|---|
@@ -8,21 +8,27 @@
 | Calendar/ReminderTask、ClubAffairsReminder | business.py、runtime.py | 60/5 分钟提醒、关键词白黑名单、skip notification、周报／次日提醒；改为持久队列，首次启动只补最近 2 分钟分钟级提醒 |
 | RepairTeam/SaturdayClient、TicketDigest、TicketReminder | business.py、runtime.py | 活动状态分页、详情、最后活动时间、1/3/2 天阈值、每天提醒；详情失败会报错而非返回不完整总数 |
 | RepairTeam/NsqConnector | transports.py | NSQ V2 IDENTIFY/TLS/AUTH/SUB/RDY/NOP/FIN/REQ、重连；本地协议服务验证心跳与连续收取。TLS 与生产认证仍待真实服务联调 |
-| MessageBridge/Types、Commands、PluginMain | transports.py、runtime.py、main.py | 保持 snake_case 包结构、Bearer 头、群消息转发、玩家列表关联、聊天／进退／死亡／进度事件和管理员开关 |
-| GitHubBridge/EventDispatch、ServerlessMQ | business.py、runtime.py、transports.py | 兼容 type=webhook/data={headers,body}，push/issues/issue_comment，按仓库映射推送，私有仓库无明确路由不外发 |
-| DailySummary | summaries.py、state.py、runtime.py | 明确授权群记录、北京时间日期范围、分段合并、定时重试、超时与清理；未迁入旧 SQLite 历史数据 |
-| PushPanel/PushRules | AstrBot _conf_schema.json + configuration.py | 同类业务规则由 AstrBot 配置面板管理，保存后重载；不移植原独立 HTTP 页面和图片模板。额外提供鉴权 /push 与 GitHub 签名入口 |
+| MessageBridge/Types、Commands、PluginMain | transports.py、runtime.py、main.py | 保持 snake_case 包结构、Bearer 头、群消息转发、玩家列表关联、聊天／进退／死亡／进度事件和管理员开关，新增持久化入服消息回执与离服撤回 |
+| GitHubBridge/EventDispatch、ServerlessMQ、ShortLinkApi | github_bridge.py、runtime.py、transports.py | 恢复默认分支、机器人账号和 issue 动作筛选，支持点目录源码推送及元数据过滤、PR 合并摘要、中文图片卡片、头像与统计、短链及 Cloudflare Access 鉴权。兼容原 MQ 包和签名 Webhook，按仓库路由并隔离私有仓库 |
+| DailySummary | summaries.py、state.py、runtime.py | 明确授权群记录、北京时间日期范围、分段合并、定时重试、超时与清理；原 LiteDB 聊天历史尚待导入 |
+| PushPanel/PushRules | push_rules.py、views/push-rules、AstrBot 插件 Web API | 迁移五组规则的可视化编辑，复用 Dashboard 鉴权。保存后更新运行配置，提供输入校验、写盘失败回滚和版本冲突检测。原 /api/rules 由插件扩展 API 承接 |
 | AIChat/ExportFunctions | AstrBot 原生模型 + huaji_calendar、huaji_query 工具 | 保留单轮“问”命令，提供只读业务工具。原多模态、引用会话、人设/MCP 由 AstrBot 原生能力承担，未做与 .NET 逐条行为等价验证 |
 
-## 明确不宣称已完成的部分
+## 尚待迁移
 
-- 没有移植原 GitHub 卡片图片渲染、短链服务和图标资源；使用文本与原始链接。
-- 没有实现玩家退出时撤回“加入服务器”消息；需要核实官方 QQ 的撤回权限及发送回执能力。
-- 维修原始 NSQ 内容的 PushRawGroup 调试转发未启用，只转格式化业务事件。
-- .NET 的 FlueBridge / huaji-agent 云端工具协议、D1 数据和工作流没有迁入本仓库；它们是另一套运行后端。本仓库使用 AstrBot 的模型与消息通道。
-- 保留完整命令词匹配，不做聊天子串匹配或随机 AI 插话。QQ群消息接收与主动推送额度仍由 QQ 平台决定。
-- 默认配置不连接生产 NSQ、GitHub MQ、游戏 MQ，也不会开启聊天记录、定时消息或外部 HTTP 服务。
-- 本地协议测试、CI 和 AstrBot 加载测试不能代替真实目标服务联调；部署时应按下述步骤逐项验收。
+- FlueBridge / huaji-agent 的签名入站、Cloudflare Queue 回执、远程命令、D1 数据及工作流。
+- 原 AIChat 的图片处理、引用追问和历史会话重建。
+- 日期计算、ASCII 艺术字与自动收集各插件 ExportFunctions 的 AI 工具机制。
+- 原 LiteDB 聊天记录、AI 会话与日报状态的数据导入。
+
+## 已知差异与验收范围
+
+- GitHub 卡片采用 Pillow、官方 Octicons 和彩色 emoji，支持基础 Markdown 文本排版，完整富文本样式仍有差异。
+- 日程输出保留简化格式，完整星期、相对日期和描述链接排版尚待恢复。
+- 入服回执和离服撤回已经实现，实际送达效果需要按目标群进行进退服验收。
+- 维修原始 NSQ 事件通过 repair.raw_session 配置，可在推送规则视图中编辑。
+- 默认后台配置由部署者填写。NSQ 生产认证、各目标群的收发权限及定时任务需要结合部署环境验收。
+- 本地协议测试、CI 和 AstrBot 运行库检查覆盖可重复验证的行为，生产验收按下述步骤进行。
 
 ## 建议验收顺序
 
@@ -34,3 +40,5 @@
 6. 按需启用日历提醒与工单超期提醒，核对北京时间和过滤规则。
 
 协议参照：[AstrBot 插件开发](https://docs.astrbot.app/dev/star/plugin-new.html)、[NSQ TCP V2](https://nsq.io/clients/tcp_protocol_spec.html)。AstrBot SDK 以本机 4.29.4 源码为验证基准。
+
+QQ 群消息撤回接口参考 [QQ机器人API](https://tencentbot.apifox.cn/387846691e0)。

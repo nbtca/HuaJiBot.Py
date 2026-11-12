@@ -361,7 +361,14 @@ async def test_http_push_auth_scope_and_github_signature(tmp_path):
             ) as response:
                 assert response.status == 202
         body = json.dumps(
-            {"repository": {"full_name": "org/repo"}, "commits": []}
+            {
+                "repository": {"full_name": "org/repo", "default_branch": "main"},
+                "sender": {"login": "user", "type": "User"},
+                "ref": "refs/heads/main",
+                "commits": [
+                    {"id": "abcdef123", "message": "Update", "modified": ["src/app.py"]}
+                ],
+            }
         ).encode()
         sig = "sha256=" + hmac.new(b"s" * 24, body, hashlib.sha256).hexdigest()
         async with client.post(

@@ -92,6 +92,9 @@ def convert(source, mapping):
         channel=repair.get("NsqChannel", ""),
         secret=repair.get("NsqSecret", ""),
     )
+    r["raw_session"] = (
+        session(repair["PushRawGroup"]) if repair.get("PushRawGroup") else ""
+    )
     github = source.get("GitHubBridge", {})
     extra["github"].update(
         enabled=bool(github.get("Enabled", True) and github.get("Address")),
@@ -101,6 +104,15 @@ def convert(source, mapping):
         groups={
             name: [session(g) for g in groups]
             for name, groups in github.get("BroadcastGroup", {}).items()
+        },
+        short_link={
+            "enabled": bool(
+                github.get("ShortLinkToken") or github.get("ShortLinkAccessClientId")
+            ),
+            "api": github.get("ShortLinkApi", "https://link.nbtca.space/api/shorten"),
+            "token": github.get("ShortLinkToken", ""),
+            "access_client_id": github.get("ShortLinkAccessClientId", ""),
+            "access_client_secret": github.get("ShortLinkAccessClientSecret", ""),
         },
     )
     bridge = source.get("MessageBridge", {})

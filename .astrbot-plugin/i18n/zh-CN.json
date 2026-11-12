@@ -1,0 +1,8 @@
+{
+  "views": {
+    "push-rules": {
+      "title": "推送规则",
+      "description": "管理 GitHub、日程、维修、游戏桥和每日总结的推送规则。"
+    }
+  }
+}

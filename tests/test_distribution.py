@@ -12,6 +12,7 @@ def test_archive_includes_license_and_only_declared_source(tmp_path, monkeypatch
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     for name in module.FILES:
+        (tmp_path / name).parent.mkdir(parents=True, exist_ok=True)
         (tmp_path / name).write_bytes((ROOT / name).read_bytes())
     (tmp_path / "private.local.json").write_text('{"secret":"must-not-ship"}')
     monkeypatch.setattr(module, "ROOT", tmp_path)

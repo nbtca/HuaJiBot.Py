@@ -1,7 +1,7 @@
 name: astrbot_plugin_huaji
 display_name: 滑稽社团助手
 desc: HuaJiBot.NET 业务移植：日历提醒、维修工单与 NSQ、游戏桥、GitHub 通知、群聊日报。
-version: v0.2.0
+version: v0.6.0
 author: Yuna-Celisse
 repo: "https://github.com/nbtca/HuaJiBot.Py"
 astrbot_version: ">=4.29.4,<5"

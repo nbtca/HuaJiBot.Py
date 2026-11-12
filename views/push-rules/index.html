@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HuaJiBot 推送规则</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <header>
+    <div><h1>推送规则</h1><p>保存后，后续新通知使用新规则。</p></div>
+    <div class="actions">
+      <button id="reload" type="button" disabled>重新读取</button>
+      <button id="save" type="submit" form="rules-form" class="primary" disabled>保存规则</button>
+    </div>
+  </header>
+  <main>
+    <p id="status" role="status" aria-live="polite">正在连接 AstrBot…</p>
+    <div class="overview" aria-label="运行状态">
+      <span id="github-status">GitHub —</span>
+      <span id="queue-status">通知队列 —</span>
+    </div>
+    <details class="targets"><summary>可用的目标会话</summary><ul id="targets"></ul><p>目标使用群内 <code>/sid</code> 返回的 UMO。新增目标可在插件设置的 allowed_sessions 中维护。</p></details>
+    <datalist id="sessions"></datalist>
+    <p class="mobile-hint">宽表可左右滑动。</p>
+    <form id="rules-form" hidden>
+      <fieldset>
+        <legend>GitHub</legend>
+        <p class="hint">默认分支推送、issue 打开／关闭／重开、新建评论。公开仓库可使用 default 分组，私有仓库需要明确路由。</p>
+        <h2>推送分组</h2>
+        <div class="table-wrap"><table><thead><tr><th>分组名称</th><th>目标会话，逗号或换行分隔</th><th>操作</th></tr></thead><tbody id="github-groups"></tbody></table></div>
+        <button id="add-github-group" type="button">添加分组</button>
+        <h2>仓库路由</h2>
+        <div class="table-wrap"><table><thead><tr><th>owner/name</th><th>分组</th><th>操作</th></tr></thead><tbody id="github-routes"></tbody></table></div>
+        <button id="add-github-route" type="button">添加仓库</button>
+      </fieldset>
+      <fieldset>
+        <legend>日程</legend>
+        <div class="grid">
+          <label class="check"><input id="calendar-enabled" type="checkbox">启用日程功能</label>
+          <label class="check"><input id="weekly" type="checkbox">一周预告</label>
+          <label>预告小时<input id="weekly-hour" type="number" min="0" max="23" required></label>
+          <label>星期<select id="weekly-day"><option value="0">周日</option><option value="1">周一</option><option value="2">周二</option><option value="3">周三</option><option value="4">周四</option><option value="5">周五</option><option value="6">周六</option></select></label>
+          <label class="check"><input id="daily" type="checkbox">次日临期提醒</label>
+          <label>临期提醒小时<input id="daily-hour" type="number" min="0" max="23" required></label>
+        </div>
+        <p class="hint">分钟级提醒在开始前 60 分钟、结束前 5 分钟发送。过滤范围包含标题、说明和地点。</p>
+        <div class="table-wrap"><table><thead><tr><th>目标会话</th><th>过滤模式</th><th>关键词，逗号分隔</th><th>操作</th></tr></thead><tbody id="calendar-groups"></tbody></table></div>
+        <button id="add-calendar" type="button">添加日程目标</button>
+      </fieldset>
+      <fieldset>
+        <legend>维修</legend>
+        <p id="repair-status" class="hint"></p>
+        <div class="grid">
+          <label class="check"><input id="tickets-enabled" type="checkbox">工单查询</label>
+          <label class="check"><input id="repair-enabled" type="checkbox">每日超期提醒</label>
+          <label>提醒小时<input id="repair-hour" type="number" min="0" max="23" required></label>
+          <label class="wide">起始时间（含时区）<input id="repair-since" placeholder="2026-01-01T00:00:00+08:00"></label>
+          <label>待接单天数<input id="open-days" type="number" min="0" step="any" required></label>
+          <label>已接单天数<input id="accepted-days" type="number" min="0" step="any" required></label>
+          <label>待审核天数<input id="committed-days" type="number" min="0" step="any" required></label>
+        </div>
+        <label>格式化事件目标，逗号或换行分隔<textarea id="repair-events" rows="2"></textarea></label>
+        <label>每日超期提醒目标，逗号或换行分隔<textarea id="repair-targets" rows="2"></textarea></label>
+        <label>原始 JSON 事件目标（可留空）<input id="repair-raw" list="sessions"></label>
+      </fieldset>
+      <fieldset>
+        <legend>Minecraft 消息桥</legend>
+        <p class="hint">服务器连接参数在插件设置中维护。</p>
+        <div id="bridge-clients"></div>
+      </fieldset>
+      <fieldset>
+        <legend>每日聊天总结</legend>
+        <div class="grid">
+          <label class="check"><input id="summary-enabled" type="checkbox">记录授权群聊天</label>
+          <label class="check"><input id="summary-scheduled" type="checkbox">定时生成日报</label>
+          <label>小时<input id="summary-hour" type="number" min="0" max="23" required></label>
+          <label>分钟<input id="summary-minute" type="number" min="0" max="59" required></label>
+          <label>最少消息数<input id="summary-min" type="number" min="0" max="2147483647" required></label>
+        </div>
+        <p class="hint">时间使用 Asia/Shanghai，定时总结前一个自然日。启用记录后开始积累聊天内容。</p>
+        <label>目标会话，逗号或换行分隔<textarea id="summary-targets" rows="2"></textarea></label>
+      </fieldset>
+    </form>
+  </main>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

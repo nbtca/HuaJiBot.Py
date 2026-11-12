@@ -1,4 +1,5 @@
 import json
+import math
 from urllib.parse import urlsplit
 
 DEFAULT_EXTENSIONS = {
@@ -17,7 +18,8 @@ DEFAULT_EXTENSIONS = {
         "hour": 12,
         "reminder_sessions": [],
         "event_sessions": [],
-        "threshold_days": {"open": 1, "accepted": 3, "committed": 2},
+        "raw_session": "",
+        "threshold_days": {"open": 1.0, "accepted": 3.0, "committed": 2.0},
         "nsq": {
             "enabled": False,
             "address": "",
@@ -33,6 +35,15 @@ DEFAULT_EXTENSIONS = {
         "token": "",
         "routes": {},
         "groups": {"default": []},
+        "cards_enabled": True,
+        "font_path": "",
+        "short_link": {
+            "enabled": False,
+            "api": "https://link.nbtca.space/api/shorten",
+            "token": "",
+            "access_client_id": "",
+            "access_client_secret": "",
+        },
     },
     "minecraft_clients": [],
     "bridge_skip_commands": True,
@@ -66,7 +77,10 @@ def merge(left, right):
                 value if key in {"routes", "groups"} else merge(left[key], value)
             )
         else:
-            if not isinstance(value, type(left[key])):
+            if type(left[key]) is float:
+                if type(value) not in {int, float} or not math.isfinite(value):
+                    raise ValueError(f"Invalid configuration type: {key}")
+            elif not isinstance(value, type(left[key])):
                 raise ValueError(f"Invalid configuration type: {key}")
             result[key] = value
     return result
@@ -98,7 +112,26 @@ def normalize(raw):
             raise ValueError("Invalid calendar keywords")
     for key in ("reminder_sessions", "event_sessions"):
         targets(result["repair"][key])
+    if result["repair"]["raw_session"]:
+        targets([result["repair"]["raw_session"]])
     targets(result["summary"]["sessions"])
+    github = result["github"]
+    if (
+        github["enabled"]
+        and github["address"]
+        and urlsplit(github["address"]).scheme not in {"ws", "wss"}
+    ):
+        raise ValueError("GitHub MQ address must use ws/wss")
+    if github["short_link"]["enabled"]:
+        endpoint = urlsplit(github["short_link"]["api"])
+        if endpoint.scheme not in {"http", "https"} or not endpoint.netloc:
+            raise ValueError("Invalid short-link API address")
+        if bool(github["short_link"]["access_client_id"]) != bool(
+            github["short_link"]["access_client_secret"]
+        ):
+            raise ValueError(
+                "Cloudflare Access credentials must be configured together"
+            )
     for values in result["github"]["groups"].values():
         targets(values)
     if any(

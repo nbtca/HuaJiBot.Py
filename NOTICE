@@ -12,3 +12,15 @@ General Public License, version 3. See LICENSE for the full terms.
 
 AstrBot and other dependencies are separate projects with their own licenses.
 This repository does not redistribute the AstrBot runtime or dependency binaries.
+
+Color emoji artwork is provided by Twemoji 17.0.0, originally by Twitter and
+maintained by the Twemoji contributors and jdecked/twemoji project.
+Graphics are licensed under Creative Commons Attribution 4.0 International.
+https://github.com/jdecked/twemoji
+https://creativecommons.org/licenses/by/4.0/
+Emoji graphics are downloaded to the local runtime asset cache.
+
+GitHub Octicons are copyright GitHub, Inc. and licensed under the MIT License.
+Official SVG sources and derived antialiased masks are packaged in assets/octicons.
+The original license and pinned source revision are included in that directory.
+https://github.com/primer/octicons

@@ -8,11 +8,13 @@ from astrbot.api.star import Context, Star, StarTools
 
 from .business import ticket_digest
 from .configuration import normalize
+from .push_rules import PushRulesPanel, RulesConflict
+from .qq_delivery import QQGroupDelivery
 from .routing import PATTERN, Gate, parse_command
 from .runtime import Runtime
 from .services import TZ, Services
 
-HELP = """滑稽社团助手 v0.2
+HELP = """滑稽社团助手 v0.6.0
 事件 [加入|聊天|死亡|进度] [开|关]：查看／管理游戏事件
 总结 [今天|昨天|前天]：默认昨天，需开启记录
 日程 [周数] / schedule [周数]：默认未来一周，支持过去周数
@@ -33,12 +35,57 @@ class HuajiPlugin(Star):
         self.services = Services(self.config)
         self.gate = Gate()
         self.runtime = None
+        self.panel = PushRulesPanel(self, config)
+        context.register_web_api(
+            "/astrbot_plugin_huaji/rules", self.panel_read, ["GET"], "读取推送规则"
+        )
+        context.register_web_api(
+            "/astrbot_plugin_huaji/rules/save",
+            self.panel_save,
+            ["POST"],
+            "保存推送规则",
+        )
+
+    async def panel_read(self):
+        from astrbot.api.web import error_response, json_response, request
+
+        if not request.username:
+            return error_response("请先登录 AstrBot", status_code=401)
+        return json_response(
+            self.panel.snapshot(), headers={"Cache-Control": "no-store"}
+        )
+
+    async def panel_save(self):
+        from astrbot.api.web import error_response, json_response, request
+
+        if not request.username:
+            return error_response("请先登录 AstrBot", status_code=401)
+        body = await request.body()
+        if len(body) > 256 * 1024:
+            return error_response("规则内容超过 256 KB", status_code=413)
+        try:
+            import json
+
+            payload = json.loads(body)
+            snapshot = await self.panel.save(payload)
+        except RulesConflict as exc:
+            return error_response(str(exc), status_code=409)
+        except (ValueError, TypeError, KeyError) as exc:
+            return error_response(str(exc), status_code=400)
+        except Exception as exc:
+            logger.warning(f"推送规则保存失败：{type(exc).__name__}")
+            return error_response("保存失败，请检查日志后重试", status_code=500)
+        return json_response(snapshot, headers={"Cache-Control": "no-store"})
 
     async def initialize(self):
         await self.services.start()
 
         async def send(origin, text):
             return await self.context.send_message(origin, MessageChain().message(text))
+
+        async def send_media(origin, text, image):
+            chain = MessageChain().file_image(image).message(text)
+            return await self.context.send_message(origin, chain)
 
         async def llm(origin, text, prompt):
             provider = await self.context.get_current_chat_provider_id(umo=origin)
@@ -47,6 +94,7 @@ class HuajiPlugin(Star):
             )
             return response.completion_text or ""
 
+        qq_delivery = QQGroupDelivery(self.context)
         self.runtime = Runtime(
             self.config,
             self.services,
@@ -54,6 +102,9 @@ class HuajiPlugin(Star):
             send,
             llm,
             logger.warning,
+            send_media=send_media,
+            send_receipt=qq_delivery.send,
+            recall=qq_delivery.recall,
         )
         try:
             await self.runtime.start()
@@ -156,7 +207,7 @@ class HuajiPlugin(Star):
         if command == "help":
             return HELP
         if command == "status":
-            return "滑稽插件 v0.2.0\n命令关键词触发；随机回复关闭\n通知队列：" + str(
+            return "滑稽插件 v0.6.0\n命令关键词触发；随机回复关闭\n通知队列：" + str(
                 self.runtime.store.counts() if self.runtime else {}
             )
         if command == "schedule":
@@ -242,9 +293,7 @@ class HuajiPlugin(Star):
         ]
         if not rules:
             return "本群未配置游戏消息桥接。"
-        disabled = self.runtime.store.get(
-            "mc-events:" + origin, rules[0].get("disabled_events", [])
-        )
+        disabled = self.runtime.disabled_events(rules[0])
         if not argument:
             return "\n".join(
                 f"{name}：{'关' if value in disabled else '开'}"
@@ -265,7 +314,8 @@ class HuajiPlugin(Star):
             disabled.discard(value)
         else:
             disabled.add(value)
-        self.runtime.store.set("mc-events:" + origin, sorted(disabled))
+        for rule in rules:
+            self.runtime.store.set(self.runtime.event_key(rule), sorted(disabled))
         return "事件开关已保存。"
 
     @filter.llm_tool(name="huaji_calendar")

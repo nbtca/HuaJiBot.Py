@@ -201,23 +201,9 @@ def calendar_notifications(events, rules, now, club):
 
 
 def github_message(kind, body):
-    repo = body.get("repository", {}).get("full_name", "unknown")
-    actor = body.get("sender", {}).get("login", "unknown")
-    if kind == "push":
-        commits = body.get("commits", [])
-        lines = [f"[{repo}] {actor} 推送 {len(commits)} 个提交 · {body.get('ref', '')}"]
-        lines += [
-            f"{c.get('id', '')[:7]} {bounded_text(c.get('message'), 300)}"
-            for c in commits[:20]
-        ]
-        lines.append(body.get("compare", ""))
-        return "\n".join(lines)
-    if kind in {"issues", "issue_comment"}:
-        issue = body.get("issue", {})
-        text = (body.get("comment") or issue).get("body", "")
-        url = (body.get("comment") or issue).get("html_url", "")
-        return f"[{repo}] {actor} {body.get('action', '')} #{issue.get('number', '?')} {issue.get('title', '')}\n{bounded_text(text, 1500)}\n{url}"
-    return None
+    from .github_bridge import build_post, should_broadcast
+
+    return build_post(kind, body).text() if should_broadcast(kind, body) else None
 
 
 def github_targets(body, config):

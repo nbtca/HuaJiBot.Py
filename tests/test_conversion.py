@@ -42,3 +42,24 @@ def test_mapping_preserves_protocol_routing_and_requires_explicit_ids():
     assert extra["minecraft_clients"][0]["token"] == "test-secret"
     assert extra["calendar_reminders"][0]["mode"] == "whitelist"
     assert cfg["admin_ids"] == []
+
+
+def test_github_shortlink_cloudflare_access_settings_are_migrated():
+    source = {
+        "GitHubBridge": {
+            "Address": "wss://example.invalid",
+            "AuthBearer": "mq-test",
+            "BroadcastMap": {"org/repo": "club"},
+            "BroadcastGroup": {"club": ["123"]},
+            "ShortLinkApi": "https://short.example/api/shorten",
+            "ShortLinkToken": "short-test",
+            "ShortLinkAccessClientId": "access-id",
+            "ShortLinkAccessClientSecret": "access-secret",
+        }
+    }
+    cfg = converter.convert(source, {"123": "bot:GroupMessage:opaque"})
+    github = json.loads(cfg["extensions_json"])["github"]
+    assert github["routes"] == {"org/repo": "club"}
+    assert github["short_link"]["enabled"]
+    assert github["short_link"]["access_client_id"] == "access-id"
+    assert github["short_link"]["access_client_secret"] == "access-secret"

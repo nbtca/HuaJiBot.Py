@@ -1,0 +1,31 @@
+{
+  "repository": "https://github.com/primer/octicons",
+  "revision": "68ec2de8d0ddfcbb7497da01d0b7d98eb5593020",
+  "license": "MIT",
+  "source_paths": {
+    "git-merge": "icons/git-merge-16.svg",
+    "git-pull-request": "icons/git-pull-request-16.svg",
+    "git-pull-request-closed": "icons/git-pull-request-closed-16.svg",
+    "git-pull-request-draft": "icons/git-pull-request-draft-16.svg",
+    "git-commit": "icons/git-commit-16.svg",
+    "repo-push": "icons/repo-push-16.svg",
+    "issue-opened": "icons/issue-opened-16.svg",
+    "issue-closed": "icons/issue-closed-16.svg",
+    "issue-reopened": "icons/issue-reopened-16.svg",
+    "skip": "icons/skip-16.svg",
+    "comment": "icons/comment-16.svg"
+  },
+  "svg_sha256": {
+    "git-merge": "c0970443ad1cf4e1801d2c7536f016ed922892debbee837def01d2f6a47ac419",
+    "git-pull-request": "d9363b57e81ae8444a934b20453169239af3a4836bb603f28f0997aecd61bdda",
+    "git-pull-request-closed": "63973e09c713aba40601107978e636cf8027958b0588923ef7f31cb8138af95a",
+    "git-pull-request-draft": "f9b529fdf8a554bd45b11bce0238db55289536255718adf0e0285ec48393a32d",
+    "git-commit": "03e3073f180936046de0108f041211839eacdf5c7044ca9c6e47ce7ac9499e4b",
+    "repo-push": "c54a95d9698857d3b3e02fff43e90636ceb32701bd20efdb75c2f2f136c34702",
+    "issue-opened": "1657cea22810a7bf42e061aa5b896f8fd25b948e961423cb219a4e7238829fd6",
+    "issue-closed": "f07c75b6c4e90385ade0cd4a1f27c179a5d4090f01ec412807790fcaa05c1955",
+    "issue-reopened": "61ca5e83c5f1b3ddb9733723bd63dc5c4be1e7d9df3ab30b5e77ccb514959292",
+    "skip": "2685fdb1dedf4a24b1ea9027fabbbd94a9374774fb3fded6a52fd183ddb8d9e8",
+    "comment": "1543da650f7940803ac965d976785d69170b88f9ce945e345cdaae7d2cf355c2"
+  }
+}

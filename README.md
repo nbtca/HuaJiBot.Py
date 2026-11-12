@@ -5,7 +5,7 @@
 
 将 [HuaJiBot.NET](https://github.com/nbtca/HuaJiBot.NET) 的主要业务插件移植为 [AstrBot](https://github.com/AstrBotDevs/AstrBot) 插件，使用 QQ 官方适配器。仓库目录可以叫 `HuaJiBot.Py`；安装到 AstrBot 时插件目录必须叫 `astrbot_plugin_huaji`，保留此名称可沿用上一版插件配置。
 
-当前版本 **0.2.0**。这是 Python 业务实现，不是 C# DLL 加载器。仓库包含源码、配置模板、测试与安装包构建工具。功能覆盖和已知差异见 [迁移清单](MIGRATION.md)。
+当前版本 **0.6.0**。仓库包含 Python 插件源码、配置模板、测试、官方图标资源与安装包构建工具。功能覆盖和已知差异见 [迁移清单](MIGRATION.md)。
 
 ## 功能
 
@@ -31,7 +31,7 @@
 ## 安装与配置
 
 1. 安装 AstrBot 4.29.4 或兼容的 4.x 版本，通过 `qq_official` / `qq_official_webhook` 连接 QQ。
-2. WebUI 上传 `dist/astrbot_plugin_huaji-v0.2.0.zip`，或将打包文件放入 `data/plugins/astrbot_plugin_huaji`。依赖由 AstrBot 按 `requirements.txt` 安装，保留框架的核心依赖保护。
+2. WebUI 上传 `dist/astrbot_plugin_huaji-v0.6.0.zip`，或将打包文件放入 `data/plugins/astrbot_plugin_huaji`。依赖由 AstrBot 按 `requirements.txt` 安装，保留框架的核心依赖保护。
 3. 插件设置填入完整 `allowed_sessions`（`/sid` 返回的 UMO）与 `admin_ids`（官方 UID），并在 AstrBot 的访问控制中允许该会话。空名单不开放任何群。
 4. WebUI 的“高级业务配置 JSON”对应 `extensions_json`。把 `config/extensions.example.json` 内容作为起点编辑，所有推送目标必须属于 `allowed_sessions`。保存后重载插件。
 5. 配置工单查询时，打开 `tickets_enabled`，填写 `repair.since`，例如 `2026-01-01T00:00:00+08:00`。默认工单接口和日历地址来自原项目公开地址，不包含访问令牌。
@@ -71,6 +71,30 @@
 
 `summary.enabled` 才记录群消息，仅记录列出的会话；默认保留 7 天。`summary.scheduled` 控制定时发送，默认北京时间 00:00 总结昨天；一小时内最多重试 3 次，失败次数跨重启保留。群历史无法从 QQ 补取，开启之前的消息不在总结范围内。
 
+### 推送规则面板
+
+在 AstrBot 左侧插件分组或插件详情页打开“推送规则”。页面沿用 Dashboard 登录鉴权，提供 GitHub 分组与仓库路由、日程关键词过滤和提醒时刻、维修事件及超期提醒、Minecraft 群转发及事件开关、群聊记录与日报时间的可视化编辑。
+
+页面显示 GitHub 连接状态和通知队列数量，目标会话从插件的 `allowed_sessions` 中选择。新增授权目标在插件设置中维护。服务器地址、鉴权令牌、模型参数继续由插件设置管理。
+
+保存会先校验整份规则并持久化，再更新运行中的配置引用，后续新通知立即使用新规则。已入队的通知保留生成时的目标和内容。游戏桥连接与事件回调继续使用更新后的目标配置，面板会同步显示群内 `事件` 命令的开关状态。
+
+页面包含配置版本校验，其他页面或群内命令修改规则后，旧页面保存会收到冲突提示。重新读取后可继续编辑。输入校验和持久化失败会保留原配置。
+
+### GitHubBridge
+
+`github.enabled` 开启后，可通过 `github.address` 和 `github.token` 连接原 ServerlessMQ，也可使用下文的签名 Webhook 入口。`routes` 把仓库全名映射到推送分组，`groups` 填写目标群的完整 UMO。私有仓库需要明确路由，公开仓库可使用 `default` 分组。
+
+恢复的默认筛选规则与 .NET 版一致。push 只广播默认分支，忽略机器人账号、空推送，以及仅修改根目录隐藏文件或 `.github/` 自动化配置的推送。`.vitepress/`、`.storybook/` 等点目录中的应用源码会正常推送。issues 广播 opened、closed、reopened，issue_comment 广播 created。PR 合并卡片显示合并编号与标题、最多 5 条提交及剩余数量。
+
+卡片事件标志采用 GitHub 官方 Octicons。合并 PR 使用紫色 git-merge，单个提交使用灰色 git-commit，多提交推送使用蓝色 repo-push。Issue 打开／重开为绿色，完成为紫色，不计划处理为灰色 skip，评论使用灰色 comment。图标随插件打包，可离线绘制。
+
+`github.cards_enabled` 默认开启，使用 Pillow 绘制中文图片卡片，包含仓库、语言、事件正文、统计及操作者头像。可用 `github.font_path` 指定字体，Linux 部署建议安装 Noto Sans CJK。卡片使用新的绘制实现。Markdown 正文支持基础文本排版，图片显示占位文字。头像以 96 像素下载并缓存 7 天，刷新失败可继续使用已有缓存。彩色 emoji 使用 Twemoji 17 资源，支持 Unicode 表情、肤色、国旗、组合序列及常见短代码。资源保存在插件数据目录的 github-assets 中。正常通知展示卡片图片和短链接。图片发送失败时保留链接，渲染不可用时提供文本通知。
+
+短链在 `github.short_link` 中配置。开启 `enabled`，填写 `api`、`token`，按服务要求填写配对的 `access_client_id`、`access_client_secret`，对应原 Cloudflare Access service token。短链请求失败时使用原链接。转换脚本会保留原 ShortLinkApi/ShortLinkToken/ShortLinkAccessClientId/ShortLinkAccessClientSecret 配置。
+
+卡片路径与正文在同一事务中入队，旧版文本队列可直接升级。重启后继续投递未完成的图片通知。无队列引用且超过 7 天的卡片会在定时清理时删除。
+
 ### 从 .NET 导出配置转换
 
 将需要迁移的配置显式导出为以 `Calendar`、`RepairTeam`、`GitHubBridge`、`MessageBridge`、`每日聊天总结` 为键的 JSON 对象。另准备 `{ "旧群号": "BOT:GroupMessage:OPENID" }` 映射文件，然后执行：
@@ -80,6 +104,14 @@
 ```
 
 脚本不读取运行中机器人的秘密、不打印密钥、不覆盖现有输出文件；缺少群映射直接报错。输出可能包含源配置中的令牌，只写 `.local.json`，已被 Git 忽略。旧 QQ 管理员号码不能映射为官方 UID，须手工添加。
+
+### Minecraft 消息桥
+
+连接参数可从原 MessageBridge 配置转换，目标使用官方群 UMO，`legacy_group_id` 保留游戏桥期待的旧群号。`to_client` 控制群聊转入游戏，`from_client` 控制游戏事件转入群聊。聊天、加入／离开、死亡和进度事件可在“推送规则”面板及群内 `事件` 命令中调整。`查询` 通过原 `get_player_list_request` 协议收集服务器玩家列表。
+
+入服提示使用 QQ 官方 API 的发送回执记录消息 ID。离服时通过群消息撤回接口删除对应入服提示。记录持久化到插件数据库，重载后仍可处理。服务器和玩家分别定位，快速进退、发送过程中的离服、跨服务器同名玩家均独立处理。撤回失败沿用通知队列的退避重试，失败条目可在面板状态中查看。
+
+旧 .NET 入口和官方机器人切换时，应先停止旧入口的同群转发，再启用新入口。原协议没有完整事件 ID，QQ 发送成功到回执落库之间的进程崩溃仍可能导致重复通知。
 
 ### HTTP 推送
 
@@ -106,7 +138,18 @@ uv pip install --python .venv/Scripts/python.exe -r requirements-dev.txt
 .venv/Scripts/python.exe tools/build.py
 ```
 
-`tests/runtime_smoke.py` 需要真实 AstrBot Python 环境与核心包路径；以模拟消息／模型验证插件入口，不发送真实 QQ 消息。协议测试使用本机临时 WebSocket、NSQ 和 HTTP 服务，不接入生产实例。
+`tests/runtime_smoke.py` 需要真实 AstrBot Python 环境与核心包路径；以模拟消息和模型验证命令入口、插件 Web API、消息回执及撤回请求。协议测试使用本机临时 WebSocket、NSQ 和 HTTP 服务。
+
+项目代码按以下职责组织。
+
+| 目录或模块 | 内容 |
+|---|---|
+| `main.py`、`runtime.py` | AstrBot 入口、命令处理、后台任务和持久化投递 |
+| `github_bridge.py`、`card_assets.py`、`octicons.py` | GitHub 事件、卡片、头像、emoji 和官方图标 |
+| `transports.py`、`qq_delivery.py` | MQ／NSQ 协议、QQ 发送回执和撤回 |
+| `push_rules.py`、`views/push-rules/` | 推送规则 API 与内嵌页面 |
+| `business.py`、`services.py`、`summaries.py`、`state.py` | 业务查询、提醒、日报和 SQLite 状态 |
+| `config/`、`tools/`、`tests/`、`assets/` | 配置模板、转换与打包工具、测试和授权资源 |
 
 具体迁移范围及差异见 [MIGRATION.md](MIGRATION.md)。
 
@@ -115,3 +158,7 @@ uv pip install --python .venv/Scripts/python.exe -r requirements-dev.txt
 本项目采用 **GNU Affero General Public License v3.0（AGPL-3.0）**，完整条款见 [LICENSE](LICENSE)，原项目来源与署名见 [NOTICE](NOTICE)。发行 ZIP 包同时包含这两份文件。
 
 通过网络提供本项目的修改版本时，请遵守 AGPL 对相应源代码提供的要求。依赖库及 AstrBot 本体保留各自许可证。
+
+彩色 emoji 图形来自 [Twemoji](https://github.com/jdecked/twemoji)，按 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) 使用。
+
+状态图标来自 [GitHub Octicons](https://github.com/primer/octicons)，原始 SVG、渲染掩码、固定源版本和 MIT 许可位于 `assets/octicons/`。

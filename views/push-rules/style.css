@@ -1,0 +1,53 @@
+:root { color-scheme: light dark; --ink: #1c1917; --muted: #57534e; --line: #e7e5e4; --paper: #fafaf9; --card: #fff; --accent: #9a3412; --error: #b91c1c; --success: #166534; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 15px/1.55 "Segoe UI", "PingFang SC", "Noto Sans SC", sans-serif; }
+header, main { width: min(1120px, calc(100% - 40px)); margin: 0 auto; }
+header { padding: 28px 0 14px; display: flex; flex-wrap: wrap; gap: 16px; align-items: center; border-bottom: 1px solid var(--line); }
+h1 { margin: 0; font-size: 28px; letter-spacing: -.03em; }
+header p { margin: 4px 0 0; color: var(--muted); }
+h2 { margin: 20px 0 8px; font-size: 15px; }
+h3 { margin: 0 0 10px; font-size: 15px; }
+.actions { margin-left: auto; display: flex; gap: 10px; }
+button, input, textarea, select { font: inherit; color: inherit; background: var(--card); border: 1px solid var(--line); border-radius: 7px; padding: 8px 10px; }
+input:not([type=checkbox]), textarea, select { width: 100%; min-width: 0; }
+input[type=checkbox] { accent-color: var(--accent); width: 16px; height: 16px; flex-shrink: 0; }
+button { cursor: pointer; white-space: nowrap; }
+button:hover { border-color: var(--accent); }
+button.primary { background: var(--accent); color: white; border-color: var(--accent); }
+button:disabled { opacity: .5; cursor: default; }
+input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+textarea { resize: vertical; }
+#status { min-height: 24px; margin: 16px 0 10px; overflow-wrap: anywhere; }
+#status.error { color: var(--error); }
+#status.success { color: var(--success); }
+.overview { display: flex; flex-wrap: wrap; gap: 12px 28px; padding: 12px 0; color: var(--muted); }
+.targets { padding: 12px 0; border-bottom: 1px solid var(--line); color: var(--muted); }
+.targets summary { cursor: pointer; }
+.targets ul { padding-left: 20px; overflow-wrap: anywhere; }
+.targets p { font-size: 13px; }
+fieldset { min-width: 0; margin: 26px 0; border: 1px solid var(--line); border-radius: 12px; padding: 16px 20px 20px; background: var(--card); }
+legend { padding: 0 8px; font-size: 18px; font-weight: 600; }
+.hint { color: var(--muted); font-size: 13px; margin: 0 0 14px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(165px, 1fr)); align-items: end; gap: 12px; margin-bottom: 16px; }
+label { display: flex; flex-direction: column; gap: 5px; color: var(--muted); font-size: 13px; margin-bottom: 12px; }
+label.check { flex-direction: row; align-items: center; gap: 8px; color: var(--ink); min-height: 38px; margin-bottom: 0; }
+.wide { grid-column: span 2; }
+.table-wrap { width: 100%; overflow-x: auto; margin-bottom: 12px; }
+table { width: 100%; border-collapse: collapse; }
+.table-wrap table { min-width: 650px; }
+.client table { min-width: 850px; }
+.mobile-hint { display: none; font-size: 13px; color: var(--muted); }
+th { font-size: 13px; color: var(--muted); font-weight: 500; text-align: left; }
+td, th { padding: 7px 10px 7px 0; vertical-align: top; }
+td:last-child, th:last-child { padding-right: 0; width: 64px; }
+td:first-child { min-width: 165px; }
+td.target { min-width: 260px; }
+table label.check { font-size: 13px; white-space: nowrap; min-height: 28px; }
+.remove { color: var(--error); }
+.client { margin: 8px 0 24px; padding-bottom: 20px; border-bottom: 1px solid var(--line); }
+.client:last-child { margin-bottom: 0; border-bottom: 0; padding-bottom: 0; }
+.client th { white-space: nowrap; }
+[hidden] { display: none !important; }
+:root[data-theme="dark"] { color-scheme: dark; --ink: #e7e5e4; --muted: #a8a29e; --line: #44403c; --paper: #1c1917; --card: #292524; --accent: #c2410c; --error: #fca5a5; --success: #86efac; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --ink: #e7e5e4; --muted: #a8a29e; --line: #44403c; --paper: #1c1917; --card: #292524; --accent: #c2410c; --error: #fca5a5; --success: #86efac; } }
+@media (max-width: 640px) { header, main { width: calc(100% - 24px); } header { align-items: start; padding-top: 18px; } .actions { margin-left: 0; width: 100%; } .actions button { flex: 1; } fieldset { padding: 12px; } .grid { grid-template-columns: repeat(2, minmax(0,1fr)); } .mobile-hint { display: block; } }

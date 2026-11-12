@@ -13,6 +13,10 @@ class State:
             status TEXT NOT NULL DEFAULT 'pending', attempts INTEGER NOT NULL DEFAULT 0,
             due REAL NOT NULL, created REAL NOT NULL)""")
         self.db.commit()
+        columns = {row[1] for row in self.db.execute("PRAGMA table_info(queue)")}
+        if "payload" not in columns:
+            self.db.execute("ALTER TABLE queue ADD COLUMN payload TEXT")
+            self.db.commit()
         self.db.execute(
             "CREATE TABLE IF NOT EXISTS kv (key TEXT PRIMARY KEY, value TEXT NOT NULL)"
         )
@@ -37,6 +41,10 @@ class State:
             self.db.execute(
                 "INSERT OR REPLACE INTO kv VALUES (?,?)", (key, json.dumps(value))
             )
+
+    def delete(self, key):
+        with self.db:
+            self.db.execute("DELETE FROM kv WHERE key=?", (key,))
 
     def record(self, origin, message_id, timestamp, sender, text):
         with self.db:
@@ -67,7 +75,19 @@ class State:
             self.db.execute("SELECT status,count(*) FROM queue GROUP BY status")
         )
 
-    def enqueue_parts(self, key, origin, text, due):
+    def card_paths(self):
+        import json
+
+        paths = set()
+        for row in self.db.execute(
+            "SELECT payload FROM queue WHERE payload IS NOT NULL"
+        ):
+            payload = json.loads(row[0])
+            if isinstance(payload, dict) and isinstance(payload.get("image"), str):
+                paths.add(payload["image"])
+        return paths
+
+    def enqueue_parts(self, key, origin, text, due, payload=None):
         """Atomically accept every part and the dedupe marker, or accept nothing."""
         import json
 
@@ -85,8 +105,15 @@ class State:
                 raise ValueError("notification queue is full")
             for index, part in enumerate(parts):
                 self.db.execute(
-                    "INSERT INTO queue(id,origin,text,due,created) VALUES (?,?,?,?,?)",
-                    (f"{key}:{index}", origin, part, due, now),
+                    "INSERT INTO queue(id,origin,text,due,created,payload) VALUES (?,?,?,?,?,?)",
+                    (
+                        f"{key}:{index}",
+                        origin,
+                        part,
+                        due,
+                        now,
+                        json.dumps(payload) if payload and index == 0 else None,
+                    ),
                 )
             self.db.execute(
                 "INSERT INTO kv VALUES (?,?)", ("accepted:" + key, json.dumps(True))
@@ -156,6 +183,12 @@ class State:
             "SELECT id,origin,text,attempts FROM queue WHERE status='pending' AND due<=? ORDER BY created LIMIT 1",
             (time.time(),),
         ).fetchone()
+
+    def payload(self, key):
+        import json
+
+        row = self.db.execute("SELECT payload FROM queue WHERE id=?", (key,)).fetchone()
+        return json.loads(row[0]) if row and row[0] else None
 
     def finish(self, key, status):
         with self.db:

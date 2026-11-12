@@ -26,7 +26,8 @@
       "channel": "",
       "secret": "",
       "tls": false
-    }
+    },
+    "raw_session": ""
   },
   "github": {
     "enabled": false,
@@ -35,6 +36,15 @@
     "routes": {},
     "groups": {
       "default": []
+    },
+    "cards_enabled": true,
+    "font_path": "",
+    "short_link": {
+      "enabled": false,
+      "api": "https://link.nbtca.space/api/shorten",
+      "token": "",
+      "access_client_id": "",
+      "access_client_secret": ""
     }
   },
   "minecraft_clients": [],

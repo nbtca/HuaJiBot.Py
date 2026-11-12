@@ -12,7 +12,7 @@ import aiohttp
 SOURCE = {
     "display_name": "QQGroup",
     "name": "HuaJiBot.Py.MessageBridge",
-    "version": "0.2.0",
+    "version": "0.6.0",
 }
 EVENT_TYPES = {
     "player_chat": "Chat",
@@ -29,6 +29,14 @@ def packet(kind, data):
 
 def minecraft_message(value):
     kind, data = value.get("type"), value.get("data", {})
+    if kind not in EVENT_TYPES:
+        return None
+    if not isinstance(data, dict) or not isinstance(value.get("source") or {}, dict):
+        raise ValueError("Invalid Minecraft packet")
+    if kind in {"player_join", "player_quit"} and not isinstance(
+        data.get("player_name"), str
+    ):
+        raise ValueError("Missing Minecraft player name")
     source = (value.get("source") or {}).get("display_name", "Unknown")
     name = data.get("player_name", "?")
     if kind == "player_chat":
