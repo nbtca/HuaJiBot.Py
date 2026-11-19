@@ -45,6 +45,7 @@ DEFAULT_EXTENSIONS = {
             "access_client_secret": "",
         },
     },
+    "minecraft_servers": [],
     "minecraft_clients": [],
     "bridge_skip_commands": True,
     "summary": {
@@ -139,6 +140,22 @@ def normalize(raw):
         for group in result["github"]["routes"].values()
     ):
         raise ValueError("GitHub route references missing group")
+    servers = result["minecraft_servers"]
+    if not isinstance(servers, list) or len(servers) > 20:
+        raise ValueError("minecraft_servers 必须是列表，最多 20 个查询目标")
+    for server in servers:
+        if not isinstance(server, dict) or any(
+            not isinstance(server.get(field), str)
+            or not server[field].strip()
+            or len(server[field]) > limit
+            for field, limit in (("name", 80), ("address", 256))
+        ):
+            raise ValueError("Minecraft 查询目标必须填写 name 和 address")
+        if "player_snapshot" in server and (
+            not isinstance(server["player_snapshot"], str)
+            or not server["player_snapshot"].strip()
+        ):
+            raise ValueError("player_snapshot 必须是玩家快照文件路径")
     for client in result["minecraft_clients"]:
         if urlsplit(client.get("address", "")).scheme not in {"ws", "wss"}:
             raise ValueError("Minecraft bridge address must use ws/wss")

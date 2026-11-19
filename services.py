@@ -1,9 +1,11 @@
 """Business services independent of AstrBot; all outbound requests are read-only."""
 
 import asyncio
+import json
 import time
 from datetime import date, datetime, timedelta
 from datetime import time as dt_time
+from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import aiohttp
@@ -16,6 +18,31 @@ TZ = ZoneInfo("Asia/Shanghai")
 
 def bounded_text(value, limit=180):
     return str(value or "").replace("\r", " ").replace("\n", " ")[:limit]
+
+
+def player_line(player):
+    ping = player.get("ping")
+    latency = f"{ping} ms" if type(ping) is int and ping >= 0 else "未知"
+    name = bounded_text(player.get("name"), 64) or "未知玩家"
+    world = bounded_text(player.get("world")) or "未知"
+    uuid = bounded_text(player.get("uuid"), 36)
+    return f"{name} · {latency} · {world}" + (f"\n  UUID：{uuid}" if uuid else "")
+
+
+def snapshot_players(path):
+    with Path(path).open("rb") as stream:
+        raw = stream.read(1_000_001)
+    if len(raw) > 1_000_000:
+        raise ValueError("snapshot too large")
+    report = json.loads(raw)
+    if not isinstance(report, dict) or type(report.get("timestamp")) is not int:
+        raise ValueError("invalid snapshot")
+    if not 0 <= time.time() - report["timestamp"] <= 30:
+        raise ValueError("expired snapshot")
+    players = report.get("players")
+    if not isinstance(players, list) or not all(isinstance(p, dict) for p in players):
+        raise ValueError("invalid players")
+    return players
 
 
 def local_datetime(value):
@@ -176,11 +203,51 @@ class Services:
 
     async def minecraft(self):
         address = self.config.get("minecraft_address", "").strip()
-        if not self.config.get("minecraft_enabled", False) or not address:
+        targets = self.config.get("minecraft_servers", [])
+        if not self.config.get("minecraft_enabled", False) or not (targets or address):
             return "MC 查询未配置。"
-        server = await JavaServer.async_lookup(address, timeout=5)
-        status = await server.async_status()
-        return (
-            f"Minecraft：{status.players.online}/{status.players.max} 人在线\n"
-            f"版本：{bounded_text(status.version.name, 80)}\n延迟：{status.latency:.0f} ms"
-        )
+        if targets:
+            results = await asyncio.gather(
+                *(self.minecraft_status(target) for target in targets),
+                return_exceptions=True,
+            )
+            return "\n\n".join(
+                f"{target['name']}\n状态查询失败（{type(result).__name__}）"
+                if isinstance(result, Exception)
+                else result
+                for target, result in zip(targets, results, strict=True)
+            )
+        return await self.minecraft_status({"name": "Minecraft", "address": address})
+
+    async def minecraft_status(self, target):
+        address = target["address"].strip()
+        name = target["name"]
+        status = None
+        try:
+            server = await JavaServer.async_lookup(address, timeout=5)
+            status = await server.async_status()
+            lines = [
+                f"{name}：{status.players.online}/{status.players.max} 人在线",
+                f"版本：{bounded_text(status.version.name, 80)}",
+                f"服务器延迟：{status.latency:.0f} ms",
+            ]
+        except Exception as exc:
+            lines = [f"{name}\n状态查询失败（{type(exc).__name__}）"]
+        if path := target.get("player_snapshot"):
+            try:
+                players = await asyncio.to_thread(snapshot_players, path)
+            except (OSError, ValueError):
+                lines.append("玩家详情暂不可用（快照缺失、过期或无效）")
+            else:
+                lines.append(
+                    f"玩家列表（{len(players)} 人）：" if players else "没有玩家在线。"
+                )
+                lines.extend(player_line(p) for p in players)
+                return "\n".join(lines)
+        if status and (sample := getattr(status.players, "sample", None)):
+            lines.append("状态响应中的玩家样本：")
+            lines.extend(
+                f"{bounded_text(p.name, 64)}（{bounded_text(p.id, 36)}）"
+                for p in sample
+            )
+        return "\n".join(lines)

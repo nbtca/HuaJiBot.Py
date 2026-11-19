@@ -22,7 +22,7 @@ from .business import (
 )
 from .github_bridge import GitHubPresentation, build_post, should_broadcast
 from .routing import parse_command
-from .services import TZ, expand_calendar
+from .services import TZ, expand_calendar, player_line
 from .state import State
 from .summaries import Summaries
 from .transports import EVENT_TYPES, MQClient, NSQConsumer, minecraft_message, packet
@@ -409,6 +409,13 @@ class Runtime:
                 self.log(f"Game bridge send failed: {type(exc).__name__}")
 
     async def players(self, origin):
+        status = None
+        if (
+            self.services
+            and self.config.get("minecraft_enabled")
+            and self.config.get("minecraft_servers")
+        ):
+            status = await self.services.minecraft()
         clients = [
             c
             for c in self.bridges
@@ -418,27 +425,38 @@ class Runtime:
             )
         ]
         if not clients:
-            return None
+            return status
         results = await asyncio.gather(
             *(c.query() for c in clients), return_exceptions=True
         )
         lines = []
-        for batch in results:
+        for client, batch in zip(clients, results, strict=True):
+            bridge_name = client.config.get("name") or "消息桥"
             if isinstance(batch, Exception):
-                lines.append("有一个服务器连接不可用。")
+                lines.append(f"{bridge_name}：消息桥连接不可用。")
+                continue
+            if not batch:
+                lines.append(f"{bridge_name}：玩家查询超时。")
                 continue
             for value in batch:
                 data = value.get("data", {})
-                name = (value.get("source") or {}).get("display_name", "服务器")
-                players = data.get("players", [])
+                name = client.config.get("name") or (value.get("source") or {}).get(
+                    "display_name", "服务器"
+                )
+                players = data.get("players")
+                if not isinstance(players, list) or not all(
+                    isinstance(p, dict) for p in players
+                ):
+                    lines.append(f"{name}：消息桥返回了无效的玩家列表。")
+                    continue
                 lines.append(
                     f"{name} 玩家列表：" if players else f"{name} 没有玩家在线！"
                 )
-                lines += [
-                    f"{p.get('name', '?')} {p.get('ping', '?')}ms {p.get('world', '?')}"
-                    for p in players
-                ]
-        return "\n".join(lines) or "查询超时！"
+                lines.extend(player_line(p) for p in players)
+        details = "\n".join(lines)
+        if status:
+            return status + ("\n\n消息桥玩家详情\n" + details if details else "")
+        return details or "查询超时！"
 
     async def tickets(self):
         cfg = self.config.get("repair", {})

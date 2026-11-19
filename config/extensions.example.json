@@ -47,6 +47,7 @@
       "access_client_secret": ""
     }
   },
+  "minecraft_servers": [],
   "minecraft_clients": [],
   "bridge_skip_commands": true,
   "summary": {

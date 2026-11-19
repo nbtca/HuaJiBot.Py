@@ -107,6 +107,14 @@
 
 ### Minecraft 消息桥
 
+`minecraft_enabled` 开启 Java 状态查询。多实例在 `extensions_json.minecraft_servers` 中配置查询列表，每项包含 `name` 和 `address`，例如 `{"name":"主服","address":"mc.example.com:25565"}`。`查询` 会分别显示各实例的在线人数、版本和延迟，单个实例连接失败时仍显示其他实例的状态。原单实例 `minecraft_address` 配置继续可用。
+
+消息互通使用 `minecraft_clients` 的连接和群规则。状态查询列表可以包含多个实例，按游戏侧接入的消息桥转发群聊和事件。消息桥客户端可填写 `name`，用于标识玩家详情所属实例。
+
+Java 状态查询显示服务器延迟，并列出响应中可用的玩家样本。消息桥和服务端快照提供玩家游戏名、UUID、个人延迟及维度。
+
+Forge 1.20.1（47.x）可安装仓库内的只读玩家查询模组。在装有 JDK 17 或更新版本的 Linux 上运行 `bash integrations/forge-player-status/build.sh /path/to/forge/libraries`，将生成的 JAR 放入服务端 `mods` 并重启。模组每 100 个服务器 tick 原子更新工作目录下的 `huaji-player-status/players.json`。将整个快照目录只读挂载给 AstrBot，并在对应的 `minecraft_servers` 项设置 `"player_snapshot":"/run/huaji-gto/players.json"`。超过 30 秒的快照会标为不可用，并回退到状态响应中的玩家样本。
+
 连接参数可从原 MessageBridge 配置转换，目标使用官方群 UMO，`legacy_group_id` 保留游戏桥期待的旧群号。`to_client` 控制群聊转入游戏，`from_client` 控制游戏事件转入群聊。聊天、加入／离开、死亡和进度事件可在“推送规则”面板及群内 `事件` 命令中调整。`查询` 通过原 `get_player_list_request` 协议收集服务器玩家列表。
 
 入服提示使用 QQ 官方 API 的发送回执记录消息 ID。离服时通过群消息撤回接口删除对应入服提示。记录持久化到插件数据库，重载后仍可处理。服务器和玩家分别定位，快速进退、发送过程中的离服、跨服务器同名玩家均独立处理。撤回失败沿用通知队列的退避重试，失败条目可在面板状态中查看。

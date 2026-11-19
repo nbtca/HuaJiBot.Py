@@ -44,6 +44,7 @@
   "minecraft_address": {
     "type": "string",
     "description": "MC 地址 host:port（不是原消息桥地址）",
+    "hint": "单实例查询地址；多实例在 extensions_json 的 minecraft_servers 中配置 name 和 address。",
     "default": ""
   },
   "ai_enabled": {
