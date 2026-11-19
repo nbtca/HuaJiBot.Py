@@ -22,7 +22,7 @@ from .business import (
 )
 from .github_bridge import GitHubPresentation, build_post, should_broadcast
 from .routing import parse_command
-from .services import TZ, expand_calendar, player_line
+from .services import TZ, expand_calendar, player_list
 from .state import State
 from .summaries import Summaries
 from .transports import EVENT_TYPES, MQClient, NSQConsumer, minecraft_message, packet
@@ -409,13 +409,6 @@ class Runtime:
                 self.log(f"Game bridge send failed: {type(exc).__name__}")
 
     async def players(self, origin):
-        status = None
-        if (
-            self.services
-            and self.config.get("minecraft_enabled")
-            and self.config.get("minecraft_servers")
-        ):
-            status = await self.services.minecraft()
         clients = [
             c
             for c in self.bridges
@@ -424,12 +417,17 @@ class Runtime:
                 for r in c.config.get("groups", [])
             )
         ]
-        if not clients:
-            return status
         results = await asyncio.gather(
             *(c.query() for c in clients), return_exceptions=True
         )
         lines = []
+        bridge_players = {}
+        targets = (
+            self.config.get("minecraft_servers")
+            if self.config.get("minecraft_enabled")
+            else []
+        )
+        names = {target["name"] for target in targets or []}
         for client, batch in zip(clients, results, strict=True):
             bridge_name = client.config.get("name") or "消息桥"
             if isinstance(batch, Exception):
@@ -449,14 +447,13 @@ class Runtime:
                 ):
                     lines.append(f"{name}：消息桥返回了无效的玩家列表。")
                     continue
-                lines.append(
-                    f"{name} 玩家列表：" if players else f"{name} 没有玩家在线！"
-                )
-                lines.extend(player_line(p) for p in players)
-        details = "\n".join(lines)
-        if status:
-            return status + ("\n\n消息桥玩家详情\n" + details if details else "")
-        return details or "查询超时！"
+                if name in names:
+                    bridge_players.setdefault(name, []).extend(players)
+                else:
+                    lines.append(player_list(name, players))
+        if targets and self.services:
+            lines.insert(0, await self.services.minecraft(bridge_players))
+        return "\n".join(lines) or None
 
     async def tickets(self):
         cfg = self.config.get("repair", {})

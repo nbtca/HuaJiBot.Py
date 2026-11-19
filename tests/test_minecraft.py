@@ -39,14 +39,13 @@ async def test_query_distinguishes_instances_and_survives_one_offline(monkeypatc
     result = await services.minecraft()
     assert "生电服" in result
     assert "状态查询失败" in result
-    assert "GTO：3/20 人在线" in result
+    assert "GTO：3 人在线" in result
     assert "mc.example.com" not in result
-    assert "1.20.1" in result
     assert "Alice（sample-id）" in result
 
 
 @pytest.mark.asyncio
-async def test_single_address_query_preserves_legacy_output(monkeypatch):
+async def test_single_address_query_compact_output(monkeypatch):
     server = SimpleNamespace(
         async_status=AsyncMock(
             return_value=SimpleNamespace(
@@ -62,9 +61,7 @@ async def test_single_address_query_preserves_legacy_output(monkeypatch):
     services = Services(
         {"minecraft_enabled": True, "minecraft_address": "mc.example.com:25565"}
     )
-    assert await services.minecraft() == (
-        "Minecraft：2/10 人在线\n版本：1.21.1\n服务器延迟：12 ms"
-    )
+    assert await services.minecraft() == ("Minecraft：2 人在线")
 
 
 @pytest.mark.asyncio
@@ -96,21 +93,26 @@ async def test_player_snapshot_and_expiry_when_status_offline(monkeypatch, tmp_p
 
 
 @pytest.mark.asyncio
-async def test_both_queries_keep_bridge_details_and_send_only_to_bridge(tmp_path):
-    services = SimpleNamespace(
-        http=None,
-        minecraft=AsyncMock(
-            return_value="主服（25565）：1 人在线\nGTO（25566）：2 人在线"
-        ),
+async def test_both_queries_keep_bridge_details_and_send_only_to_bridge(
+    tmp_path, monkeypatch
+):
+    server = SimpleNamespace(
+        async_status=AsyncMock(
+            return_value=SimpleNamespace(players=SimpleNamespace(online=0))
+        )
+    )
+    monkeypatch.setattr(
+        "huaji_port.services.JavaServer.async_lookup", AsyncMock(return_value=server)
     )
     cfg = {
         **CONFIG,
         "minecraft_enabled": True,
         "minecraft_servers": SERVERS,
     }
+    services = Services(cfg)
     bot = Runtime(cfg, services, tmp_path, AsyncMock(), None, lambda _: None)
     bridge = SimpleNamespace(
-        config={**CLIENT, "name": "主服（25565）"},
+        config={**CLIENT, "name": "生电服"},
         query=AsyncMock(
             return_value=[
                 {
@@ -133,14 +135,14 @@ async def test_both_queries_keep_bridge_details_and_send_only_to_bridge(tmp_path
     bot.bridges = [bridge]
     try:
         result = await bot.players(ORIGIN)
-        assert "主服（25565）：1 人在线" in result
-        assert "GTO（25566）：2 人在线" in result
-        assert "主服（25565） 玩家列表" in result
+        assert "生电服：1 人在线" in result
+        assert "GTO：0 人在线" in result
+        assert result.count("生电服") == 1
         assert "Alice · 12 ms · world" in result and "UUID：player-id" in result
         bridge.query.return_value = []
         assert "玩家查询超时" in await bot.players(ORIGIN)
         bridge.query.return_value = [{"data": {"players": []}}]
-        assert "没有玩家在线" in await bot.players(ORIGIN)
+        assert await bot.players(ORIGIN) == "生电服：0 人在线\nGTO：0 人在线"
         await bot.observe(ORIGIN, "user", "User", "hello", "message", 0)
         bridge.send.assert_awaited_once()
         assert bridge.send.await_args.args[0]["data"]["message"] == "hello"

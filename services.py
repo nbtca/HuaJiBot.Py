@@ -29,6 +29,12 @@ def player_line(player):
     return f"{name} · {latency} · {world}" + (f"\n  UUID：{uuid}" if uuid else "")
 
 
+def player_list(name, players):
+    return "\n".join(
+        [f"{name}：{len(players)} 人在线", *(player_line(p) for p in players)]
+    )
+
+
 def snapshot_players(path):
     with Path(path).open("rb") as stream:
         raw = stream.read(1_000_001)
@@ -201,17 +207,21 @@ class Services:
             calendar_text, raw, datetime.now(TZ), days, only_next
         )
 
-    async def minecraft(self):
+    async def minecraft(self, bridge_players=None):
         address = self.config.get("minecraft_address", "").strip()
         targets = self.config.get("minecraft_servers", [])
         if not self.config.get("minecraft_enabled", False) or not (targets or address):
             return "MC 查询未配置。"
         if targets:
+            bridge_players = bridge_players or {}
             results = await asyncio.gather(
-                *(self.minecraft_status(target) for target in targets),
+                *(
+                    self.minecraft_status(target, bridge_players.get(target["name"]))
+                    for target in targets
+                ),
                 return_exceptions=True,
             )
-            return "\n\n".join(
+            return "\n".join(
                 f"{target['name']}\n状态查询失败（{type(result).__name__}）"
                 if isinstance(result, Exception)
                 else result
@@ -219,31 +229,25 @@ class Services:
             )
         return await self.minecraft_status({"name": "Minecraft", "address": address})
 
-    async def minecraft_status(self, target):
+    async def minecraft_status(self, target, bridge_players=None):
         address = target["address"].strip()
         name = target["name"]
+        if bridge_players is not None:
+            return player_list(name, bridge_players)
         status = None
         try:
             server = await JavaServer.async_lookup(address, timeout=5)
             status = await server.async_status()
-            lines = [
-                f"{name}：{status.players.online}/{status.players.max} 人在线",
-                f"版本：{bounded_text(status.version.name, 80)}",
-                f"服务器延迟：{status.latency:.0f} ms",
-            ]
+            lines = [f"{name}：{status.players.online} 人在线"]
         except Exception as exc:
-            lines = [f"{name}\n状态查询失败（{type(exc).__name__}）"]
+            lines = [f"{name}：状态查询失败（{type(exc).__name__}）"]
         if path := target.get("player_snapshot"):
             try:
                 players = await asyncio.to_thread(snapshot_players, path)
             except (OSError, ValueError):
                 lines.append("玩家详情暂不可用（快照缺失、过期或无效）")
             else:
-                lines.append(
-                    f"玩家列表（{len(players)} 人）：" if players else "没有玩家在线。"
-                )
-                lines.extend(player_line(p) for p in players)
-                return "\n".join(lines)
+                return player_list(name, players)
         if status and (sample := getattr(status.players, "sample", None)):
             lines.append("状态响应中的玩家样本：")
             lines.extend(
