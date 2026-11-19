@@ -25,8 +25,7 @@ def player_line(player):
     latency = f"{ping} ms" if type(ping) is int and ping >= 0 else "未知"
     name = bounded_text(player.get("name"), 64) or "未知玩家"
     world = bounded_text(player.get("world")) or "未知"
-    uuid = bounded_text(player.get("uuid"), 36)
-    return f"{name} · {latency} · {world}" + (f"\n  UUID：{uuid}" if uuid else "")
+    return f"{name} · {latency} · {world}"
 
 
 def player_list(name, players):
@@ -250,8 +249,5 @@ class Services:
                 return player_list(name, players)
         if status and (sample := getattr(status.players, "sample", None)):
             lines.append("状态响应中的玩家样本：")
-            lines.extend(
-                f"{bounded_text(p.name, 64)}（{bounded_text(p.id, 36)}）"
-                for p in sample
-            )
+            lines.extend(bounded_text(p.name, 64) for p in sample)
         return "\n".join(lines)

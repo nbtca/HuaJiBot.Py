@@ -41,7 +41,7 @@ async def test_query_distinguishes_instances_and_survives_one_offline(monkeypatc
     assert "状态查询失败" in result
     assert "GTO：3 人在线" in result
     assert "mc.example.com" not in result
-    assert "Alice（sample-id）" in result
+    assert "Alice" in result and "sample-id" not in result
 
 
 @pytest.mark.asyncio
@@ -85,7 +85,7 @@ async def test_player_snapshot_and_expiry_when_status_offline(monkeypatch, tmp_p
     }
     path.write_text(json.dumps(report))
     result = await services.minecraft()
-    assert "Alice · 0 ms · gt:moon" in result and "UUID：player-id" in result
+    assert "Alice · 0 ms · gt:moon" in result and "player-id" not in result
     report["timestamp"] -= 60
     path.write_text(json.dumps(report))
     result = await services.minecraft()
@@ -138,7 +138,7 @@ async def test_both_queries_keep_bridge_details_and_send_only_to_bridge(
         assert "生电服：1 人在线" in result
         assert "GTO：0 人在线" in result
         assert result.count("生电服") == 1
-        assert "Alice · 12 ms · world" in result and "UUID：player-id" in result
+        assert "Alice · 12 ms · world" in result and "player-id" not in result
         bridge.query.return_value = []
         assert "玩家查询超时" in await bot.players(ORIGIN)
         bridge.query.return_value = [{"data": {"players": []}}]
