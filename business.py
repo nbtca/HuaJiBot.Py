@@ -121,9 +121,12 @@ def calendar_matches(event, rule):
 
 
 def notification_allowed(event):
+    title = str(event.get("SUMMARY", ""))
     return (
         str(event.get("STATUS", "")).upper() != "CANCELLED"
         and "[skip notification]" not in str(event.get("DESCRIPTION", "")).lower()
+        and "（待定）" not in title
+        and "(待定)" not in title
     )
 
 

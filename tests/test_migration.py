@@ -140,6 +140,12 @@ DESCRIPTION:[SKIP NOTIFICATION]
 SUMMARY:club hidden
 END:VEVENT
 BEGIN:VEVENT
+UID:tentative
+DTSTART:20261105T050000Z
+RRULE:FREQ=DAILY;COUNT=2
+SUMMARY:club NWDC （待定）
+END:VEVENT
+BEGIN:VEVENT
 UID:day
 DTSTART;VALUE=DATE:20261105
 SUMMARY:club all-day
@@ -155,6 +161,7 @@ END:VCALENDAR"""
         calendar_notifications(events, rules, NOW, {"daily": True, "daily_hour": 12})
     )
     assert any("club:daily:" in j[0] and "repair" in j[2] for j in tomorrow_jobs)
+    assert all("NWDC" not in j[2] for j in tomorrow_jobs)
 
 
 @pytest.mark.asyncio
