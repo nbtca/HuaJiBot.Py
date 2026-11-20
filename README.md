@@ -37,6 +37,12 @@
 5. 配置工单查询时，打开 `tickets_enabled`，填写 `repair.since`，例如 `2026-01-01T00:00:00+08:00`。默认工单接口和日历地址来自原项目公开地址，不包含访问令牌。
 6. 测试 `@机器人 日程`、`@机器人 工单`，再测试非 @。不要将两个版本同时作为同一群的全量游戏消息转发入口；`ignored_bot_ids` 可排除旧机器人 UID。
 
+### 运行日志
+
+插件通过 AstrBot 写入运行日志。当前部署在 AstrBot 的 `data/cmd_config.json` 中启用了 `log_file_enable`，日志级别 `log_level` 为 `INFO`，文件路径 `log_file_path` 为 `logs/astrbot.log`。`log_file_max_mb` 设为 `20`，单文件达到 20 MB 时轮转，AstrBot 保留最近 3 个历史文件。
+
+Docker Compose 通过 `./data:/AstrBot/data` 挂载数据目录。可在宿主机的 Compose 项目目录运行 `tail -f ./data/logs/astrbot.log` 查看实时日志。重启容器或使用同一宿主机数据目录重建容器后，已有日志仍可读取。
+
 ### 后台配置示例
 
 以下片段填入 `extensions_json`；替换 UMO、地址与密钥。其余字段使用默认值。
