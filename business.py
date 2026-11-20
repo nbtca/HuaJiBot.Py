@@ -2,7 +2,7 @@
 
 from datetime import datetime, timedelta
 
-from .services import bounded_text, local_datetime
+from .services import bounded_text, local_datetime, notification_allowed
 
 STAGES = {"open": "待接单", "accepted": "已接单未提交", "committed": "待审核"}
 ACTIONS = {
@@ -118,16 +118,6 @@ def calendar_matches(event, rule):
     hit = any(keyword in text for keyword in rule.get("keywords", []) if keyword)
     mode = rule.get("mode", "all")
     return hit if mode == "whitelist" else not hit if mode == "blacklist" else True
-
-
-def notification_allowed(event):
-    title = str(event.get("SUMMARY", ""))
-    return (
-        str(event.get("STATUS", "")).upper() != "CANCELLED"
-        and "[skip notification]" not in str(event.get("DESCRIPTION", "")).lower()
-        and "（待定）" not in title
-        and "(待定)" not in title
-    )
 
 
 def event_text(event):

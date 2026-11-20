@@ -82,6 +82,33 @@ def test_calendar_recurring_timezone_exclusion_and_past():
     assert "11-04 09:00" in calendar_text(ICS, now, -7)
 
 
+def test_calendar_queries_skip_placeholders_before_selecting_next():
+    raw = """BEGIN:VCALENDAR
+VERSION:2.0
+BEGIN:VEVENT
+UID:marked
+DTSTART:20261127T123000Z
+SUMMARY:NWDC
+DESCRIPTION:[skip notification]
+END:VEVENT
+BEGIN:VEVENT
+UID:tentative
+DTSTART:20261127T123000Z
+SUMMARY:NWDC （待定）
+END:VEVENT
+BEGIN:VEVENT
+UID:repair
+DTSTART:20261128T013000Z
+SUMMARY:理工维修日
+END:VEVENT
+END:VCALENDAR"""
+    now = datetime(2026, 11, 20, 15, tzinfo=TZ)
+    for only_next in (False, True):
+        result = calendar_text(raw, now, 30, only_next)
+        assert "11-28 09:30 · 理工维修日" in result
+        assert "NWDC" not in result
+
+
 def test_notification_persistence_and_idempotency(tmp_path):
     path = tmp_path / "state.db"
     state = State(path)

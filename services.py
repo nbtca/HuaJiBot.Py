@@ -60,13 +60,23 @@ def local_datetime(value):
     raise ValueError("Invalid calendar date")
 
 
+def notification_allowed(event):
+    title = str(event.get("SUMMARY", ""))
+    return (
+        str(event.get("STATUS", "")).upper() != "CANCELLED"
+        and "[skip notification]" not in str(event.get("DESCRIPTION", "")).lower()
+        and "（待定）" not in title
+        and "(待定)" not in title
+    )
+
+
 def calendar_text(raw, now, days=7, only_next=False):
     cal = Calendar.from_ical(raw)
     start_window, end_window = sorted((now, now + timedelta(days=days)))
     events = expand_calendar(cal, start_window, end_window)
     rows = []
     for event in events:
-        if str(event.get("STATUS", "")).upper() == "CANCELLED":
+        if not notification_allowed(event):
             continue
         start = local_datetime(event.decoded("DTSTART"))
         end = local_datetime(event.decoded("DTEND", event.decoded("DTSTART")))
