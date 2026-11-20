@@ -3,7 +3,7 @@ import time
 from datetime import datetime, timedelta
 
 from astrbot.api import AstrBotConfig, logger
-from astrbot.api.event import AstrMessageEvent, MessageChain, filter
+from astrbot.api.event import AstrMessageEvent, filter
 from astrbot.api.star import Context, Star, StarTools
 
 from .business import ticket_digest
@@ -79,13 +79,17 @@ class HuajiPlugin(Star):
 
     async def initialize(self):
         await self.services.start()
+        qq_delivery = QQGroupDelivery(self.context)
 
         async def send(origin, text):
-            return await self.context.send_message(origin, MessageChain().message(text))
+            receipts = await qq_delivery.send(origin, text)
+            logger.info("QQ notification receipt: %s %s", origin, receipts)
+            return True
 
         async def send_media(origin, text, image):
-            chain = MessageChain().file_image(image).message(text)
-            return await self.context.send_message(origin, chain)
+            receipts = await qq_delivery.send(origin, text, image)
+            logger.info("QQ notification receipt: %s %s", origin, receipts)
+            return True
 
         async def llm(origin, text, prompt):
             provider = await self.context.get_current_chat_provider_id(umo=origin)
@@ -94,7 +98,6 @@ class HuajiPlugin(Star):
             )
             return response.completion_text or ""
 
-        qq_delivery = QQGroupDelivery(self.context)
         self.runtime = Runtime(
             self.config,
             self.services,

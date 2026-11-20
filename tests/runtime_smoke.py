@@ -28,9 +28,20 @@ async def check():
     sys.modules["huaji_port"] = package
     spec.loader.exec_module(package)
     module = importlib.import_module("huaji_port.main")
+    notification_api = SimpleNamespace(
+        post_group_message=AsyncMock(return_value={"id": "notification-id"}),
+        _http=SimpleNamespace(
+            request=AsyncMock(return_value={"file_info": "uploaded-image"})
+        ),
+    )
+    notification_platform = SimpleNamespace(
+        meta=lambda: SimpleNamespace(name="qq_official"),
+        client=SimpleNamespace(api=notification_api),
+    )
     context = SimpleNamespace(
         register_web_api=Mock(),
         send_message=AsyncMock(return_value=True),
+        get_platform_inst=lambda _: notification_platform,
         get_current_chat_provider_id=AsyncMock(return_value="test-provider"),
         llm_generate=AsyncMock(
             return_value=SimpleNamespace(completion_text="test answer")
@@ -96,11 +107,18 @@ async def check():
             payload={"image": str(image)},
         )
         await plugin.runtime.delivery_once()
-        context.send_message.assert_awaited_once()
-        chain = context.send_message.await_args.args[1]
-        assert chain.chain[0].type == "Image"
-        assert any(component.type == "Image" for component in chain.chain)
-        assert any(component.type == "Plain" for component in chain.chain)
+        context.send_message.assert_not_awaited()
+        notification_api.post_group_message.assert_awaited_once_with(
+            group_openid="test",
+            msg_type=7,
+            content="GitHub test",
+            media={"file_info": "uploaded-image"},
+        )
+        assert plugin.runtime.store.counts() == {"sent": 1}
+        notification_api.post_group_message.return_value = {}
+        plugin.runtime.enqueue("missing-receipt", "bot:GroupMessage:test", "retry")
+        await plugin.runtime.delivery_once()
+        assert plugin.runtime.store.counts() == {"sent": 1, "pending": 1}
         import astrbot.api.web as web
 
         with patch.object(web, "request", SimpleNamespace(username=None)):
@@ -145,9 +163,7 @@ async def check():
     finally:
         await plugin.terminate()
         temp.cleanup()
-    print(
-        "AstrBot runtime smoke: 14 checks passed; no real network/model/message calls."
-    )
+    print("AstrBot runtime smoke checks passed; no real network/model/message calls.")
 
 
 if __name__ == "__main__":
